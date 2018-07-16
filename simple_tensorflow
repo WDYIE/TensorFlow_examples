@@ -1,0 +1,72 @@
+
+#这个小demo以简洁的方式使用TensorFlow模拟了加法
+#可以学TensorFlow多个类的使用和训练思路梳理
+#1.tensor和variable的区别？
+#2.参数更新的流程？
+#3.数据是否需要正则化？
+#4.学习率改怎样设置？
+
+import tensorflow as  tf
+import random
+import numpy as np
+
+
+xlist = []
+ylist = []
+batch_size =1 #一批大小，也就是运行一次的数据量
+range_random=(0,1000) #随机产生模拟数据的范围
+
+#生成模拟数据,x1，x2,y,其中y=x1+x2
+def generaate_data(size,isNormal):
+
+    for i in  range(size):
+        x1 = random.randint(range_random)
+        x2 = random.randint(range_random)
+        if isNormal:
+            x1=x1/range_random[1]
+            x2=x2/range_random[1]
+        y = x1 + x2
+        xlist.append([x1,x2])
+        ylist.append(y)
+
+#从模拟数据当中拿出一批数据
+def generate_batch(batch_size,index_start):
+    assert batch_size+index_start<len(xlist)
+    batch_inputs = xlist[index_start:index_start+batch_size]
+    batch_label = ylist[index_start:index_start+batch_size]
+    return batch_inputs,batch_label
+
+
+#输入数据不需要训练，使用占位符placeholder表示的tensor，用于接受feeddict的数据。
+trainIput = tf.placeholder(tf.float32,shape=[batch_size,2])
+trainLabel = tf.placeholder(tf.float32,shape=[batch_size])
+
+#w,b都是需要训练的参数，所以使用变量variable。默认初始化，每次计算都会更新此变量
+w = tf.get_variable("wights",dtype=tf.float32,shape=[2,1])
+b = tf.get_variable("bias",[batch_size,1],dtype=tf.float32)
+
+#简单的线性函数y=wx+b
+#损失函数使用简单的欧式距离
+y_out = tf.matmul(trainIput,w)+b
+loss = tf.reduce_sum((y_out-trainLabel)**2)
+
+#使用梯度下降来最优化loss,设置参数为学习率为0.1。
+with tf.name_scope("optimizer"):
+    optimizer = tf.train.GradientDescentOptimizer(0.1).minimize(loss)
+
+with tf.Session() as  sess:
+    #初始化全局变量。w,b都会被放到默认的
+    init = tf.global_variables_initializer()
+    init.run()
+
+    num_steps = 100000
+    size= num_steps*batch_size
+    generaate_data(size)
+
+    for i in range(num_steps):
+        batch_inputs,batch_label = generate_batch(batch_size,i*batch_size)
+        feed_dict = {trainIput:batch_inputs,trainLabel:batch_label}
+        #我们需要观察w,b的值变化，所以讲w,b传入fetch中并返回为wr,br。
+        _, lossr,wr,br,y_outr= sess.run([optimizer,loss,w,b,y_out],feed_dict=feed_dict)
+        if i%10==0:
+            print("loss=%f"%lossr)
