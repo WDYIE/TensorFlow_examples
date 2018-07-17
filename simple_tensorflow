@@ -14,14 +14,14 @@ import numpy as np
 xlist = []
 ylist = []
 batch_size =1 #一批大小，也就是运行一次的数据量
-range_random=(0,1000) #随机产生模拟数据的范围
+range_random=(0,100) #随机产生模拟数据的范围
 
 #生成模拟数据,x1，x2,y,其中y=x1+x2
 def generaate_data(size,isNormal):
 
     for i in  range(size):
-        x1 = random.randint(range_random)
-        x2 = random.randint(range_random)
+        x1 = random.randint(range_random[0],range_random[1])
+        x2 = random.randint(range_random[0],range_random[1])
         if isNormal:
             x1=x1/range_random[1]
             x2=x2/range_random[1]
@@ -61,12 +61,17 @@ with tf.Session() as  sess:
 
     num_steps = 100000
     size= num_steps*batch_size
-    generaate_data(size)
+    generaate_data(size,True)
 
     for i in range(num_steps):
         batch_inputs,batch_label = generate_batch(batch_size,i*batch_size)
         feed_dict = {trainIput:batch_inputs,trainLabel:batch_label}
         #我们需要观察w,b的值变化，所以讲w,b传入fetch中并返回为wr,br。
         _, lossr,wr,br,y_outr= sess.run([optimizer,loss,w,b,y_out],feed_dict=feed_dict)
-        if i%10==0:
+
+        if i%1000==0:
             print("loss=%f"%lossr)
+
+        if lossr < 0.00000001:
+            print("end at %d" % i)
+            break
